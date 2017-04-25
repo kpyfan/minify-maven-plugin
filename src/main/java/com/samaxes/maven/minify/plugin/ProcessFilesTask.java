@@ -21,6 +21,7 @@ package com.samaxes.maven.minify.plugin;
 import com.samaxes.maven.minify.common.SourceFilesEnumeration;
 import com.samaxes.maven.minify.common.YuiConfig;
 import com.samaxes.maven.minify.plugin.MinifyMojo.Engine;
+import java.util.*;
 import org.apache.maven.plugin.logging.Log;
 import org.codehaus.plexus.util.DirectoryScanner;
 import org.codehaus.plexus.util.FileUtils;
@@ -28,10 +29,6 @@ import org.codehaus.plexus.util.IOUtil;
 
 import java.io.*;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.zip.GZIPOutputStream;
 
@@ -74,6 +71,8 @@ public abstract class ProcessFilesTask implements Callable<Object> {
 
     private final boolean sourceIncludesEmpty;
 
+    private final boolean newLineBetweenFiles;
+
     /**
      * Task constructor.
      *
@@ -102,7 +101,8 @@ public abstract class ProcessFilesTask implements Callable<Object> {
                             boolean nosuffix, boolean skipMerge, boolean skipMinify, String webappSourceDir,
                             String webappTargetDir, String inputDir, List<String> sourceFiles,
                             List<String> sourceIncludes, List<String> sourceExcludes, String outputDir,
-                            String outputFilename, Engine engine, YuiConfig yuiConfig) throws FileNotFoundException {
+                            String outputFilename, Engine engine, YuiConfig yuiConfig, boolean newLineBetweenFiles)
+                            throws FileNotFoundException {
         this.log = log;
         this.verbose = verbose;
         this.bufferSize = bufferSize;
@@ -113,6 +113,7 @@ public abstract class ProcessFilesTask implements Callable<Object> {
         this.skipMinify = skipMinify;
         this.engine = engine;
         this.yuiConfig = yuiConfig;
+        this.newLineBetweenFiles = newLineBetweenFiles;
 
         this.sourceDir = new File(webappSourceDir + File.separator + inputDir);
         this.targetDir = new File(webappTargetDir + File.separator + outputDir);
@@ -200,13 +201,23 @@ public abstract class ProcessFilesTask implements Callable<Object> {
             throw new RuntimeException("Unable to create target directory for: " + mergedFile.getParentFile());
         }
 
-        try (InputStream sequence = new SequenceInputStream(new SourceFilesEnumeration(log, files, verbose));
-             OutputStream out = new FileOutputStream(mergedFile);
-             InputStreamReader sequenceReader = new InputStreamReader(sequence, charset);
-             OutputStreamWriter outWriter = new OutputStreamWriter(out, charset)) {
+        Enumeration<InputStream> sourceFiles = new SourceFilesEnumeration(log, files, verbose);
+
+        try(OutputStream out = new FileOutputStream(mergedFile);
+                OutputStreamWriter outWriter = new OutputStreamWriter(out, charset)) {
             log.info("Creating the merged file [" + (verbose ? mergedFile.getPath() : mergedFile.getName()) + "].");
 
-            IOUtil.copy(sequenceReader, outWriter, bufferSize);
+            while(sourceFiles.hasMoreElements()) {
+                try (InputStream inputStream = sourceFiles.nextElement();
+                        InputStreamReader sequenceReader = new InputStreamReader(inputStream, charset)) {
+
+                    IOUtil.copy(sequenceReader, outWriter, bufferSize);
+                    if (newLineBetweenFiles) {
+                        IOUtil.copy(System.lineSeparator().getBytes(), outWriter, bufferSize);
+                    }
+
+                }
+            }
         } catch (IOException e) {
             log.error("Failed to concatenate files.", e);
             throw e;

@@ -1,5 +1,8 @@
 # Minify Maven Plugin
 
+##2.0.1
+* Add `newLineBetweenFiles` option to add new line after every files to merge
+
 ## 2.0.0
 
 * Adopt [Semantic Versioning](http://semver.org/) scheme.

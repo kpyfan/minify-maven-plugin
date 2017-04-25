@@ -70,11 +70,12 @@ public class ProcessJSFilesTask extends ProcessFilesTask {
                               boolean nosuffix, boolean skipMerge, boolean skipMinify, String webappSourceDir,
                               String webappTargetDir, String inputDir, List<String> sourceFiles,
                               List<String> sourceIncludes, List<String> sourceExcludes, String outputDir,
-                              String outputFilename, Engine engine, YuiConfig yuiConfig, ClosureConfig closureConfig)
+                              String outputFilename, Engine engine, YuiConfig yuiConfig, ClosureConfig closureConfig,
+                              boolean newLineBetweenFiles)
             throws FileNotFoundException {
         super(log, verbose, bufferSize, charset, suffix, nosuffix, skipMerge, skipMinify, webappSourceDir,
                 webappTargetDir, inputDir, sourceFiles, sourceIncludes, sourceExcludes, outputDir, outputFilename,
-                engine, yuiConfig);
+                engine, yuiConfig, newLineBetweenFiles);
 
         this.closureConfig = closureConfig;
     }
